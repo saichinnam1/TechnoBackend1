@@ -8,6 +8,18 @@ RUN mvn clean package -DskipTests
 # Package stage
 FROM eclipse-temurin:17-jre
 WORKDIR /app
+
+# Create a non-root user and group
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy the jar file from the build stage
 COPY --from=build /app/target/ecommerce-backend-0.0.1-SNAPSHOT.jar app.jar
+
+# Change ownership of the app directory to the non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to the non-root user
+USER appuser
+
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
