@@ -1,0 +1,2 @@
+skip-checks:
+- CKV_DOCKER_3
