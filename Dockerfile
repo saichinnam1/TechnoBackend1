@@ -1,24 +1,24 @@
-# Use a base image supported by Choreo
+# Use a Choreo-supported base image
 FROM eclipse-temurin:17-jre
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Create a non-root user and group with UID/GID between 10001 and 20000
-RUN groupadd -r -g 12001 appgroup && \
-    useradd -r -u 12001 -g appgroup -m -d /home/appuser appuser
+# Create non-root user/group with UID and GID in 10000-20000 range
+RUN groupadd -g 10001 appgroup && \
+    useradd -u 10001 -g appgroup -m -d /home/appuser appuser
 
-# Copy the pre-built JAR file into the container
+# Copy your JAR
 COPY target/ecommerce-backend-0.0.1-SNAPSHOT.jar app.jar
 
-# Set ownership of the application files to the non-root user
-RUN chown -R appuser:appgroup /app
+# Set correct ownership
+RUN chown -R 10001:10001 /app
 
-# Switch to non-root user using the username (not just UID)
-USER appuser
+# Set the USER using numeric UID:GID (this is what the scan checks)
+USER 10001:10001
 
-# Expose the application port
+# Expose app port
 EXPOSE 8080
 
-# Run the application
+# Start app
 ENTRYPOINT ["java", "-jar", "app.jar"]
