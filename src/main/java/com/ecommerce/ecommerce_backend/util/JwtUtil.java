@@ -21,7 +21,7 @@ public class JwtUtil {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
     private static final String ROLES_CLAIM = "roles";
 
-    @Value("${jwt.secret:VGhpcyBpcyBhIHZlcnkgc2VjdXJlIHN1cGVyIHN1cGVyIHZlcnkgbG9uZyBzZWNyZXQga2V5IQ==}")
+    @Value("${jwt.secret:/KKpyW07YkFQpwFS13ZT18cQBtmnvjrXhX+n4rHfzO0=}")
     private String secretKey;
 
     @Value("${jwt.expiration:604800000}") // 7 days for access token

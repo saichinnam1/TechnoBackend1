@@ -1,13 +1,17 @@
-# Build stage
-FROM maven:3.9.9-eclipse-temurin-17 AS build
-WORKDIR /app
-COPY pom.xml .
-COPY src src
-RUN mvn clean package -DskipTests
+# Use an official OpenJDK runtime as a parent image
+FROM openjdk:17-jdk-slim
 
-# Package stage
-FROM eclipse-temurin:17-jre
+# Set the working directory in the container
 WORKDIR /app
-COPY --from=build /app/target/ecommerce-backend-0.0.1-SNAPSHOT.jar app.jar
+
+# Copy the Maven build output (JAR file) into the container
+COPY target/ecommerce-backend-0.0.1-SNAPSHOT.jar app.jar
+
+# Create the uploads directory
+RUN mkdir -p /uploads
+
+# Expose the port the app runs on
 EXPOSE 8080
+
+# Run the JAR file
 ENTRYPOINT ["java", "-jar", "app.jar"]
