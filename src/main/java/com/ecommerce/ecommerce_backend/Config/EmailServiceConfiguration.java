@@ -11,7 +11,7 @@ import java.util.Properties;
 @Configuration
 public class EmailServiceConfiguration {
 
-    
+
     @Bean
     public JavaMailSender javaMailSender(
             @Value("${spring.mail.host}") String host,
