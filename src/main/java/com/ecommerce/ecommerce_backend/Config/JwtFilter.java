@@ -37,7 +37,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String requestURI = request.getRequestURI();
         logger.debug("Processing request for URI: {}", requestURI);
 
-        // Skip filtering for frontend routes and permitted API endpoints
+
         if (!requestURI.startsWith("/api/") || // Skip non-API routes (e.g., /auth/reset)
                 requestURI.startsWith("/api/auth/") ||
                 requestURI.startsWith("/api/oauth2/") ||
@@ -94,4 +94,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
         chain.doFilter(request, response);
     }
+
+
 }
