@@ -77,7 +77,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**", "/api/reset-password/**", "/oauth2/**", "/public/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                       
+
                 )
 
                 // Configure OAuth2 login
