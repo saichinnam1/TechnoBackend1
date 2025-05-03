@@ -1,11 +1,7 @@
-.dockerignore
-target/
-.git/
-.gitignore
+# Ignore unnecessary files for Docker build
 *.md
-mvnw
-mvnw.cmd
-.mvn/
-uploads/
-.idea/
-*.iml
+*.log
+.git
+.gitignore
+.env
+src/test/
