@@ -40,6 +40,10 @@ public class SecurityConfig {
         this.successHandler = successHandler;
         this.authorizationRequestRepository = authorizationRequestRepository;
     }
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
