@@ -107,7 +107,7 @@ public class SecurityConfig {
     private CorsConfigurationSource corsConfigurationSource() {
         logger.debug("Configuring CORS");
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://accounts.google.com","https://technotitans-ecommerce.vercel.app/"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://accounts.google.com","https://ecommerce-frontend-hf4x.vercel.app/"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
