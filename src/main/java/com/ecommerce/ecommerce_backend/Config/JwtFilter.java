@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
@@ -37,17 +38,8 @@ public class JwtFilter extends OncePerRequestFilter {
         String requestURI = request.getRequestURI();
         logger.debug("Processing request for URI: {}", requestURI);
 
-
-        if (!requestURI.startsWith("/api/") || // Skip non-API routes (e.g., /auth/reset)
-                requestURI.startsWith("/api/auth/") ||
-                requestURI.startsWith("/api/oauth2/") ||
-                requestURI.startsWith("/login/") ||
-                requestURI.startsWith("/oauth2/") ||
-                requestURI.startsWith("/login/oauth2/code/") ||
-                requestURI.equals("/favicon.ico") ||
-                requestURI.startsWith("/accounts/") ||
-                requestURI.startsWith("/api/reset-password/")) {
-            logger.info("Skipping JWT filter for URI: {}", requestURI);
+        // Skip filtering for public endpoints
+        if (requestURI.startsWith("/api/auth/") || requestURI.startsWith("/public/")) {
             chain.doFilter(request, response);
             return;
         }
@@ -61,39 +53,25 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         String token = authorizationHeader.substring(TOKEN_PREFIX.length());
-        String username;
         try {
-            username = jwtUtil.extractUsername(token);
-            if (username == null) {
-                logger.warn("Could not extract username from token for URI: {}", requestURI);
-                chain.doFilter(request, response);
-                return;
+            String username = jwtUtil.extractUsername(token);
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (jwtUtil.validateToken(token, username)) {
+                    Set<String> roles = jwtUtil.extractRoles(token);
+                    Set<SimpleGrantedAuthority> authorities = roles.stream()
+                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                            .collect(Collectors.toSet());
+
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            username, null, authorities);
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
-            logger.debug("Extracted username: {} for URI: {}", username, requestURI);
         } catch (Exception e) {
-            logger.error("Error extracting username from token for URI {}: {}", requestURI, e.getMessage());
-            chain.doFilter(request, response);
-            return;
-        }
-
-        if (SecurityContextHolder.getContext().getAuthentication() == null && jwtUtil.validateToken(token, username)) {
-            Set<String> roles = jwtUtil.extractRoles(token);
-            Set<SimpleGrantedAuthority> authorities = roles.stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                    .collect(Collectors.toSet());
-
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    username, null, authorities
-            );
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-            logger.debug("Authentication set for user: {} with roles: {} for URI: {}", username, roles, requestURI);
-        } else {
-            logger.warn("Token validation failed for user: {}. Expired: {} for URI: {}", username, jwtUtil.isTokenExpired(token), requestURI);
+            logger.error("Invalid token for URI {}: {}", requestURI, e.getMessage());
         }
 
         chain.doFilter(request, response);
     }
-
-
 }

@@ -22,6 +22,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -29,88 +30,72 @@ public class SecurityConfig {
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final JwtFilter jwtFilter;
-    private final UserService userService;
     private final OAuth2AuthenticationSuccessHandler successHandler;
     private final AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository;
 
-    public SecurityConfig(JwtFilter jwtFilter, UserService userService, OAuth2AuthenticationSuccessHandler successHandler,
+    public SecurityConfig(JwtFilter jwtFilter,
+                          OAuth2AuthenticationSuccessHandler successHandler,
                           AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository) {
         this.jwtFilter = jwtFilter;
-        this.userService = userService;
         this.successHandler = successHandler;
         this.authorizationRequestRepository = authorizationRequestRepository;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        logger.info("Configuring Spring Security filter chain");
+        logger.info("Configuring Spring Security");
 
         http
+                // Enable CORS and disable CSRF for APIs
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> {
-                    logger.debug("Disabling CSRF protection");
-                    csrf.disable();
-                })
-                .sessionManagement(session -> {
-                    logger.debug("Setting session management to STATELESS");
-                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-                })
+                .csrf(csrf -> csrf.disable())
+
+                // Stateless session management
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Exception handling for unauthorized and forbidden requests
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
-                            logger.error("Unauthorized access to {}: {}", request.getRequestURI(), authException.getMessage());
+                            logger.error("Unauthorized access: {}", authException.getMessage());
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json");
-                            response.getWriter().write("{\"success\": false, \"message\": \"Unauthorized\", \"error\": \"" + authException.getMessage() + "\"}");
+                            response.getWriter().write("{\"error\": \"Unauthorized\"}");
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            logger.error("Access denied to {}: {}", request.getRequestURI(), accessDeniedException.getMessage());
+                            logger.error("Access denied: {}", accessDeniedException.getMessage());
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             response.setContentType("application/json");
-                            response.getWriter().write("{\"success\": false, \"message\": \"Access denied\", \"error\": \"" + accessDeniedException.getMessage() + "\"}");
+                            response.getWriter().write("{\"error\": \"Access Denied\"}");
                         })
                 )
-                .authorizeHttpRequests(authorize -> {
-                    logger.debug("Configuring request matchers");
-                    authorize
-                            .requestMatchers("/api/auth/**", "/api/reset-password/**", "/oauth2/**", "/login/oauth2/code/**", "/api/oauth2/authorization/**", "/favicon.ico", "/accounts/**", "/error", "/api/products", "/api/products/**", "/api/contact").permitAll()
-                            .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
-                            .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                            .requestMatchers("/uploads/**").permitAll()
-                            .anyRequest().authenticated();
-                })
-                .oauth2Login(oauth2 -> {
-                    logger.debug("Configuring OAuth2 login");
-                    oauth2
-                            .authorizationEndpoint(authorization -> authorization
-                                    .authorizationRequestRepository(authorizationRequestRepository)
-                            )
-                            .successHandler(successHandler)
-                            .failureHandler((request, response, exception) -> {
-                                logger.error("OAuth2 login failed for request {}: {}", request.getRequestURI(), exception.getMessage());
-                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                                response.setContentType("application/json");
-                                response.getWriter().write("{\"success\": false, \"message\": \"OAuth2 login failed\", \"error\": \"" + exception.getMessage() + "\"}");
-                            });
-                });
 
+                // Define authorization rules
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/auth/**", "/api/reset-password/**", "/oauth2/**", "/public/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+
+                // Configure OAuth2 login
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .authorizationRequestRepository(authorizationRequestRepository))
+                        .successHandler(successHandler)
+                );
+
+        // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-        logger.info("Spring Security filter chain configured successfully");
         return http.build();
     }
 
     private CorsConfigurationSource corsConfigurationSource() {
-        logger.debug("Configuring CORS");
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://accounts.google.com","https://ecommerce-frontend-hf4x.vercel.app/"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://your-frontend-domain.com"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
