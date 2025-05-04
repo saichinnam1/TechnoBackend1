@@ -60,6 +60,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials, HttpServletResponse response) {
+        logger.info("Received login request");
         String username = credentials.get("username");
         String password = credentials.get("password");
 
@@ -109,6 +110,7 @@ public class AuthController {
     @PostMapping("/register")
     @Transactional
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegistrationRequest request, HttpServletResponse response) {
+        logger.info("Received register request: {}", request);
         String username = request.getUsername();
         String password = request.getPassword();
         String email = request.getEmail();
@@ -160,6 +162,7 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<Map<String, Object>> registerAdmin(@RequestBody RegistrationRequest request) {
+        logger.info("Received admin register request: {}", request);
         String username = request.getUsername();
         String password = request.getPassword();
         String email = request.getEmail();
@@ -205,6 +208,7 @@ public class AuthController {
     @GetMapping("/admin/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
+        logger.info("Received request to get all users");
         List<User> users = userRepository.findAll();
         List<Map<String, Object>> userDetails = new ArrayList<>();
 
@@ -229,6 +233,7 @@ public class AuthController {
 
     @GetMapping("/validate")
     public ResponseEntity<Map<String, Object>> validateToken(@RequestHeader("Authorization") String authorizationHeader) {
+        logger.info("Received token validation request");
         if (authorizationHeader != null && authorizationHeader.startsWith(TOKEN_PREFIX)) {
             String token = authorizationHeader.substring(TOKEN_PREFIX.length());
             String username = jwtUtil.extractUsername(token);
@@ -259,6 +264,7 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refreshToken(@RequestBody Map<String, String> request) {
+        logger.info("Received token refresh request");
         String refreshToken = request.get("refreshToken");
         String username = jwtUtil.extractUsername(refreshToken);
         if (username != null && !jwtUtil.isTokenExpired(refreshToken)) {
