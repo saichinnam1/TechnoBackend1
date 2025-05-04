@@ -57,7 +57,7 @@ public class PasswordResetService {
         logger.info("Created password reset token: {}", resetToken);
         tokenRepository.flush();
 
-        String resetLink = "http://localhost:3000/auth/reset/" + token;
+        String resetLink = "https://ecommerce-frontend-hf4x.vercel.app/auth/reset/" + token;
         String subject = "Password Reset Request";
         String body = "Hello " + user.getUsername() + ",\n\n" +
                 "You have requested to reset your password. Click the link below to reset it:\n" +
