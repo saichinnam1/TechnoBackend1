@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/cart")
+@RequestMapping("/cart")
 public class CartController {
 
     private static final Logger logger = LoggerFactory.getLogger(CartController.class);

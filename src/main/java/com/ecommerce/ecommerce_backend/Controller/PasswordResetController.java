@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/reset-password")
+@RequestMapping("/reset-password")
 public class PasswordResetController {
 
     private static final Logger logger = LoggerFactory.getLogger(PasswordResetController.class);

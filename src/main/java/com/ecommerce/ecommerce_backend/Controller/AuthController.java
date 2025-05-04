@@ -30,7 +30,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
