@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -101,28 +102,28 @@ public class SecurityConfig {
                     logger.debug("Configuring request matchers");
                     authorize
                             // Permit OPTIONS requests for all endpoints to handle CORS pre-flight
-                            .requestMatchers(new AntPathRequestMatcher("/**", "OPTIONS", false)).permitAll()
-                            // Explicitly permit authentication endpoints
-                            .requestMatchers(new AntPathRequestMatcher("/api/auth/login", "POST", false)).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/api/auth/register", "POST", false)).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/api/auth/refresh", "POST", false)).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/api/auth/oauth2/success", "POST", false)).permitAll()
-                            // Other permitted endpoints
-                            .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/api/reset-password/**")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/oauth2/**")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/**")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/api/oauth2/authorization/**")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/favicon.ico")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/accounts/**")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/api/products")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/api/products/**")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/api/contact")).permitAll()
-                            .requestMatchers(new AntPathRequestMatcher("/uploads/**")).permitAll()
+                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            // Public endpoints
+                            .requestMatchers("/api/auth/login").permitAll()
+                            .requestMatchers("/api/auth/register").permitAll()
+                            .requestMatchers("/api/auth/refresh").permitAll()
+                            .requestMatchers("/api/auth/oauth2/success").permitAll()
+                            .requestMatchers("/api/auth/**").permitAll()
+                            .requestMatchers("/api/reset-password/**").permitAll()
+                            .requestMatchers("/api/products").permitAll()
+                            .requestMatchers("/api/products/**").permitAll()
+                            .requestMatchers("/api/contact").permitAll()
+                            .requestMatchers("/uploads/**").permitAll()
+                            .requestMatchers("/favicon.ico").permitAll()
+                            .requestMatchers("/error").permitAll()
+                            // OAuth2 endpoints
+                            .requestMatchers("/oauth2/**").permitAll()
+                            .requestMatchers("/login/oauth2/code/**").permitAll()
+                            .requestMatchers("/api/oauth2/authorization/**").permitAll()
+                            .requestMatchers("/accounts/**").permitAll()
                             // Admin endpoints
-                            .requestMatchers(new AntPathRequestMatcher("/api/auth/admin/**")).hasRole("ADMIN")
-                            .requestMatchers(new AntPathRequestMatcher("/api/admin/**")).hasRole("ADMIN")
+                            .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
+                            .requestMatchers("/api/admin/**").hasRole("ADMIN")
                             // All other requests require authentication
                             .anyRequest().authenticated();
                 })
