@@ -20,6 +20,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
@@ -45,6 +46,27 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Bean
+    public CorsFilter corsFilter() {
+        logger.debug("Configuring CORS Filter");
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "https://accounts.google.com",
+                "https://ecommerce-frontend-hf4x.vercel.app",
+                "https://ecommerce-frontend-hf4x-git-master-saichinnam1s-projects.vercel.app",
+                "https://ecommerce-frontend-hf4x-8uhzzjj11-saichinnam1s-projects.vercel.app"
+        ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+        source.registerCorsConfiguration("/**", configuration);
+        return new CorsFilter(source);
     }
 
     @Bean
@@ -120,6 +142,7 @@ public class SecurityConfig {
                 });
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(corsFilter(), JwtFilter.class); // Ensure CORS filter runs before security filters
 
         logger.info("Spring Security filter chain configured successfully");
         return http.build();
