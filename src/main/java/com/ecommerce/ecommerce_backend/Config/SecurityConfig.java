@@ -19,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.List;
 
@@ -77,10 +78,30 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> {
                     logger.debug("Configuring request matchers");
                     authorize
-                            .requestMatchers("/api/auth/**", "/api/reset-password/**", "/oauth2/**", "/login/oauth2/code/**", "/api/oauth2/authorization/**", "/favicon.ico", "/accounts/**", "/error", "/api/products", "/api/products/**", "/api/contact").permitAll()
-                            .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
-                            .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                            .requestMatchers("/uploads/**").permitAll()
+                            // Permit OPTIONS requests for all endpoints to handle CORS pre-flight
+                            .requestMatchers(new AntPathRequestMatcher("/**", "OPTIONS", false)).permitAll()
+                            // Explicitly permit authentication endpoints
+                            .requestMatchers(new AntPathRequestMatcher("/api/auth/login", "POST", false)).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/api/auth/register", "POST", false)).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/api/auth/refresh", "POST", false)).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/api/auth/oauth2/success", "POST", false)).permitAll()
+                            // Other permitted endpoints
+                            .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/api/reset-password/**")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/oauth2/**")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/login/oauth2/code/**")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/api/oauth2/authorization/**")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/favicon.ico")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/accounts/**")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/api/products")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/api/products/**")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/api/contact")).permitAll()
+                            .requestMatchers(new AntPathRequestMatcher("/uploads/**")).permitAll()
+                            // Admin endpoints
+                            .requestMatchers(new AntPathRequestMatcher("/api/auth/admin/**")).hasRole("ADMIN")
+                            .requestMatchers(new AntPathRequestMatcher("/api/admin/**")).hasRole("ADMIN")
+                            // All other requests require authentication
                             .anyRequest().authenticated();
                 })
                 .oauth2Login(oauth2 -> {
@@ -107,11 +128,18 @@ public class SecurityConfig {
     private CorsConfigurationSource corsConfigurationSource() {
         logger.debug("Configuring CORS");
         CorsConfiguration configuration = new CorsConfiguration();
-        // Removed trailing slash from the frontend URL
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://accounts.google.com", "https://ecommerce-frontend-hf4x.vercel.app","https://ecommerce-frontend-hf4x-git-master-saichinnam1s-projects.vercel.app/","https://ecommerce-frontend-hf4x-8uhzzjj11-saichinnam1s-projects.vercel.app/"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "https://accounts.google.com",
+                "https://ecommerce-frontend-hf4x.vercel.app",
+                "https://ecommerce-frontend-hf4x-git-master-saichinnam1s-projects.vercel.app",
+                "https://ecommerce-frontend-hf4x-8uhzzjj11-saichinnam1s-projects.vercel.app"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
