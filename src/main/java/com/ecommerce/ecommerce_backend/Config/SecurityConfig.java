@@ -1,7 +1,6 @@
 package com.ecommerce.ecommerce_backend.Config;
 
 import com.ecommerce.ecommerce_backend.Service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,12 +19,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Collections;
-import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -78,13 +73,10 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(request -> {
-                            logger.debug("Checking request: {} {}", request.getMethod(), request.getRequestURI());
-                            return true;
-                        }).permitAll() // For logging only
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        // Use AntPathMatcher patterns to handle variations
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/register/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/login/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/reset-password/**").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()
@@ -106,7 +98,6 @@ public class SecurityConfig {
                         })
                 );
 
-        http.addFilterBefore(new RequestLoggingFilter(), JwtFilter.class);
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         logger.info("Spring Security filter chain configured successfully");
@@ -135,28 +126,5 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         logger.debug("CORS configuration applied for origins: {}", configuration.getAllowedOrigins());
         return source;
-    }
-
-    // Define RequestLoggingFilter as an inner class
-    public static class RequestLoggingFilter extends OncePerRequestFilter {
-
-        private static final Logger logger = LoggerFactory.getLogger(RequestLoggingFilter.class);
-
-        @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, jakarta.servlet.FilterChain chain)
-                throws IOException, jakarta.servlet.ServletException {
-            logger.info("Incoming request: {} {} - Headers: {}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    Collections.list(request.getHeaderNames()).stream()
-                            .map(name -> name + ": " + request.getHeader(name))
-                            .collect(Collectors.joining(", "))
-            );
-            chain.doFilter(request, response);
-            logger.info("Response status for {} {}: {}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    response.getStatus());
-        }
     }
 }
