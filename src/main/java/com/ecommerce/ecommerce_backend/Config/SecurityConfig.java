@@ -60,13 +60,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
-                            logger.error("Unauthorized access: {}", authException.getMessage());
+                            logger.error("Unauthorized access to {}: {}", request.getRequestURI(), authException.getMessage());
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json");
                             response.getWriter().write("{\"success\": false, \"message\": \"Unauthorized\", \"error\": \"" + authException.getMessage() + "\"}");
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            logger.error("Access denied: {}", accessDeniedException.getMessage());
+                            logger.error("Access denied to {}: {}", request.getRequestURI(), accessDeniedException.getMessage());
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             response.setContentType("application/json");
                             response.getWriter().write("{\"success\": false, \"message\": \"Access denied\", \"error\": \"" + accessDeniedException.getMessage() + "\"}");
@@ -83,7 +83,7 @@ public class SecurityConfig {
                         .authorizationEndpoint(endpoint -> endpoint.authorizationRequestRepository(authorizationRequestRepository))
                         .successHandler(successHandler)
                         .failureHandler((request, response, exception) -> {
-                            logger.error("OAuth2 login failed: {}", exception.getMessage());
+                            logger.error("OAuth2 login failed for request {}: {}", request.getRequestURI(), exception.getMessage());
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json");
                             response.getWriter().write("{\"success\": false, \"message\": \"OAuth2 login failed\", \"error\": \"" + exception.getMessage() + "\"}");
@@ -116,6 +116,7 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+        logger.debug("CORS configuration applied for origins: {}", configuration.getAllowedOrigins());
         return source;
     }
 }
