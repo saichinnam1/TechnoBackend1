@@ -1,4 +1,4 @@
-package com.ecommerce.ecommerce_backend.Config;
+package com.ecommerce.ecommerce_backend.config;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -27,5 +27,10 @@ public class AppConfig {
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKeyId, secretAccessKey)))
                 .build();
+    }
+
+    @Bean
+    public String awsRegion() {
+        return region;
     }
 }
