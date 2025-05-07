@@ -1,12 +1,5 @@
 package com.ecommerce.ecommerce_backend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
-
-
 import jakarta.persistence.*;
 
 @Entity
@@ -21,6 +14,7 @@ public class Product {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Lob
     @Column(name = "description", nullable = false)
     private String description;
 
