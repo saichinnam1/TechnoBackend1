@@ -16,7 +16,7 @@ public class ClaudeBinaryUploader {
         ));
 
         try {
-            File file = new File("path/to/your/image.jpg");
+            File file = new File("\"D:\\Products\\Iphone16.jpg\"");
             Map uploadResult = cloudinary.uploader().upload(file, ObjectUtils.asMap(
                     "public_id", "products/1698123456789_image"
             ));
