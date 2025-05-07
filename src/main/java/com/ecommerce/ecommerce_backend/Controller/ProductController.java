@@ -6,7 +6,6 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
@@ -26,27 +26,19 @@ public class ProductController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
 
-    @Autowired
-    private ProductRepository productRepository;
-
-    @Value("${cloudinary.cloud-name}")
-    private String cloudName;
-
-    @Value("${cloudinary.api-key}")
-    private String apiKey;
-
-    @Value("${cloudinary.api-secret}")
-    private String apiSecret;
-
+    private final ProductRepository productRepository;
     private final Cloudinary cloudinary;
 
-    @Autowired
-    public ProductController() {
-        // Initialize Cloudinary with environment variables (will be set during runtime)
+    @Value("${cloudinary.cloud-name}")
+    private String cloudinaryCloudName;
+
+    public ProductController(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+        // Initialize Cloudinary with environment variables
         this.cloudinary = new Cloudinary(ObjectUtils.asMap(
-                "cloud_name", System.getenv("CLOUDINARY_CLOUD_NAME") != null ? System.getenv("CLOUDINARY_CLOUD_NAME") : cloudName,
-                "api_key", System.getenv("CLOUDINARY_API_KEY") != null ? System.getenv("CLOUDINARY_API_KEY") : apiKey,
-                "api_secret", System.getenv("CLOUDINARY_API_SECRET") != null ? System.getenv("CLOUDINARY_API_SECRET") : apiSecret
+                "cloud_name", System.getenv("CLOUDINARY_CLOUD_NAME") != null ? System.getenv("CLOUDINARY_CLOUD_NAME") : cloudinaryCloudName,
+                "api_key", System.getenv("CLOUDINARY_API_KEY"),
+                "api_secret", System.getenv("CLOUDINARY_API_SECRET")
         ));
     }
 
@@ -70,20 +62,20 @@ public class ProductController {
                     "public_id", "products/" + System.currentTimeMillis() + "_" + file.getOriginalFilename()
             ));
 
-            String imageUrl = uploadResult.get("secure_url").toString();
-            logger.info("File uploaded to Cloudinary successfully: {}", imageUrl);
+            String publicId = uploadResult.get("public_id").toString(); // e.g., "products/1698123456789_image"
+            logger.info("File uploaded to Cloudinary successfully: {}", publicId);
 
-            // Save product with image URL
+            // Save product with Cloudinary public ID
             Product product = new Product();
             product.setName(name);
             product.setDescription(description);
             product.setPrice(price);
             product.setCategory(category);
-            product.setImageUrl(imageUrl);
+            product.setImageUrl(publicId); // Store public ID instead of full URL
             Product savedProduct = productRepository.save(product);
 
             logger.info("Product saved: {}", savedProduct.getName());
-            return ResponseEntity.ok(savedProduct);
+            return ResponseEntity.ok(convertToResponse(savedProduct));
 
         } catch (IOException e) {
             logger.error("File upload failed: {}", e.getMessage(), e);
@@ -95,18 +87,21 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> getProductById(@PathVariable Long id) {
         Optional<Product> product = productRepository.findById(id);
-        return product.map(ResponseEntity::ok)
+        return product.map(p -> ResponseEntity.ok(convertToResponse(p)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
     }
 
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
+    public ResponseEntity<List<Map<String, Object>>> getAllProducts() {
         logger.info("Fetching all products");
         try {
             List<Product> products = productRepository.findAll();
-            return ResponseEntity.ok(products);
+            List<Map<String, Object>> response = products.stream()
+                    .map(this::convertToResponse)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error fetching products: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
@@ -114,12 +109,39 @@ public class ProductController {
     }
 
     @GetMapping("/category/{category}")
-    public List<Product> getProductsByCategory(@PathVariable String category) {
-        return productRepository.findByCategory(category);
+    public List<Map<String, Object>> getProductsByCategory(@PathVariable String category) {
+        return productRepository.findByCategory(category).stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/search")
-    public List<Product> searchProducts(@RequestParam("query") String query) {
-        return productRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(query);
+    public List<Map<String, Object>> searchProducts(@RequestParam("query") String query) {
+        return productRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(query).stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, Object> convertToResponse(Product product) {
+        Map<String, Object> response = ObjectUtils.asMap(
+                "id", product.getId(),
+                "name", product.getName(),
+                "description", product.getDescription(),
+                "price", product.getPrice(),
+                "category", product.getCategory()
+        );
+
+        String publicId = product.getImageUrl();
+        if (publicId != null && !publicId.isEmpty()) {
+
+            if (publicId.startsWith("https://res.cloudinary.com")) {
+                publicId = publicId.split("/v1/")[1].split("/w_")[0]; // Extract public ID from full URL
+            }
+            String cloudinaryUrl = String.format("https://res.cloudinary.com/%s/image/upload/v1/%s", cloudinaryCloudName, publicId);
+            response.put("imageUrl", cloudinaryUrl);
+        } else {
+            response.put("imageUrl", null);
+        }
+        return response;
     }
 }

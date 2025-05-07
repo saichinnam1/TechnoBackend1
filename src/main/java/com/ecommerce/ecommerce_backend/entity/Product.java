@@ -6,23 +6,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 
-@Entity
+
 public class Product {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
-
     private double price;
     private String imageUrl;
     private String category;
-
-
-
-    @Lob
     private String description;
 
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -37,14 +30,6 @@ public class Product {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public double getPrice() {
@@ -69,5 +54,13 @@ public class Product {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }
