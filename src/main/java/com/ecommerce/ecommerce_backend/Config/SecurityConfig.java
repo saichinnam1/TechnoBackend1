@@ -5,6 +5,7 @@ import com.ecommerce.ecommerce_backend.Config.JwtFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +21,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -32,6 +34,9 @@ public class SecurityConfig {
     private final UserService userService;
     private final OAuth2AuthenticationSuccessHandler successHandler;
     private final AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository;
+
+    @Value("${allowed.origins}")
+    private String allowedOrigins;
 
     public SecurityConfig(JwtFilter jwtFilter, UserService userService, OAuth2AuthenticationSuccessHandler successHandler,
                           AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository) {
@@ -80,7 +85,6 @@ public class SecurityConfig {
                             .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/**", "/api/reset-password/**", "/oauth2/**", "/login/oauth2/code/**", "/api/oauth2/authorization/**", "/favicon.ico", "/accounts/**", "/error", "/api/products", "/api/products/**", "/api/contact").permitAll()
                             .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                            .requestMatchers("/uploads/**").permitAll()
                             .anyRequest().authenticated();
                 })
                 .oauth2Login(oauth2 -> {
@@ -107,9 +111,10 @@ public class SecurityConfig {
     private CorsConfigurationSource corsConfigurationSource() {
         logger.debug("Configuring CORS");
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://accounts.google.com", "https://ecommerce-frontend-hf4x.vercel.app", "https://ecommerce-frontend-hf4x-git-master-saichinnam1s-projects.vercel.app"));
+        // Split the allowedOrigins string (from application.properties) into a list
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
