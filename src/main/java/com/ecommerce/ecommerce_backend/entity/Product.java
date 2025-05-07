@@ -6,14 +6,36 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 
+
+import jakarta.persistence.*;
+
 @Entity
+@Table(name = "product")
 public class Product {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
+
+    @Column(name = "name", nullable = false)
     private String name;
-    private double price;
-    private String imageUrl;
-    private String category;
+
+    @Column(name = "description", nullable = false)
     private String description;
+
+    @Column(name = "price", nullable = false)
+    private double price;
+
+    @Column(name = "category", nullable = false)
+    private String category;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    // Default constructor
+    public Product() {
+    }
 
     // Getters and Setters
     public Long getId() {
@@ -32,20 +54,20 @@ public class Product {
         this.name = name;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public double getPrice() {
         return price;
     }
 
     public void setPrice(double price) {
         this.price = price;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
     }
 
     public String getCategory() {
@@ -56,11 +78,11 @@ public class Product {
         this.category = category;
     }
 
-    public String getDescription() {
-        return description;
+    public String getImageUrl() {
+        return imageUrl;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }
