@@ -38,7 +38,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private PasswordEncoder passwordEncoder;
 
     public OAuth2AuthenticationSuccessHandler() {
-        super("http://localhost:3000/auth/success");
+        super("https://saitecnotitans.netlify.app/auth/success");
         setUseReferer(false);
     }
 
