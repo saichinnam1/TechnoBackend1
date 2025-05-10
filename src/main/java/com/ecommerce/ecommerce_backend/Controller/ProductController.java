@@ -3,6 +3,7 @@ package com.ecommerce.ecommerce_backend.Controller;
 import com.ecommerce.ecommerce_backend.entity.Product;
 import com.ecommerce.ecommerce_backend.repository.ProductRepository;
 import okhttp3.*;
+import okhttp3.RequestBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
