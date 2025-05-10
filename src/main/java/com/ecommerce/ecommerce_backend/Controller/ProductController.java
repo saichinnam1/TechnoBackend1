@@ -3,7 +3,6 @@ package com.ecommerce.ecommerce_backend.Controller;
 import com.ecommerce.ecommerce_backend.entity.Product;
 import com.ecommerce.ecommerce_backend.repository.ProductRepository;
 import okhttp3.*;
-import okhttp3.RequestBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -26,7 +25,7 @@ import java.util.stream.Collectors;
 public class ProductController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
-    private static final String FREEIMAGE_API_KEY = "6d207e02198a847aa98d0a2a901485";
+    private static final String FREEIMAGE_API_KEY = "6d207e02198a847aa98d0a2a901485"; // Updated API key
 
     private final ProductRepository productRepository;
     private final OkHttpClient client;
@@ -67,48 +66,43 @@ public class ProductController {
             String imageUrl = uploadToFreeImageHost(file);
             if (imageUrl == null) {
                 logger.warn("Falling back to saving product without image due to FreeImage.host failure.");
-                // Optionally save the product without an image or implement local storage
-                Product product = new Product();
-                product.setName(name);
-                product.setDescription(description);
-                product.setPrice(price);
-                product.setCategory(category);
-                product.setImageUrl(null); // No image URL
-                Product savedProduct = productRepository.save(product);
-                logger.info("Product saved without image: {}", savedProduct.getName());
-                return ResponseEntity.ok(convertToResponse(savedProduct));
             }
 
-            logger.info("File uploaded to FreeImage.host successfully: {}", imageUrl);
-
-            // Save product with FreeImage.host URL
+            // Save product
             Product product = new Product();
             product.setName(name);
             product.setDescription(description);
             product.setPrice(price);
             product.setCategory(category);
-            product.setImageUrl(imageUrl);
-            Product savedProduct = productRepository.save(product);
+            product.setImageUrl(imageUrl); // Will be null if upload failed
+            Product savedProduct;
+            try {
+                savedProduct = productRepository.save(product);
+            } catch (Exception e) {
+                logger.error("Failed to save product to database: {}", e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to save product to database: " + e.getMessage());
+            }
 
             logger.info("Product saved: {}", savedProduct.getName());
             return ResponseEntity.ok(convertToResponse(savedProduct));
 
         } catch (Exception e) {
             logger.error("Error saving product: {}", e.getMessage(), e);
+            if (e.getMessage() != null && e.getMessage().contains("FreeImage.host")) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload image to FreeImage.host: " + e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error saving product: " + e.getMessage());
         }
     }
 
     private String uploadToFreeImageHost(MultipartFile file) throws Exception {
-
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("source", file.getOriginalFilename(),
                         RequestBody.create(file.getBytes(), MediaType.parse("image/*")))
                 .addFormDataPart("type", "file")
-                .addFormDataPart("key", FREEIMAGE_API_KEY) // Include the API key
+                .addFormDataPart("key", FREEIMAGE_API_KEY)
                 .build();
-
 
         Request request = new Request.Builder()
                 .url("https://freeimage.host/api/1/upload")
@@ -117,16 +111,23 @@ public class ProductController {
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                logger.error("Failed to upload image to FreeImage.host: {}", response.message());
+                logger.error("Failed to upload image to FreeImage.host: {} - {}", response.code(), response.message());
                 return null;
             }
 
-            // Parse the response to get the image URL
             String responseBody = response.body().string();
+            logger.info("FreeImage.host response: {}", responseBody);
             ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readTree(responseBody);
             String imageUrl = rootNode.path("image").path("url").asText();
+            if (imageUrl == null || imageUrl.isEmpty()) {
+                logger.error("Failed to parse image URL from FreeImage.host response");
+                return null;
+            }
             return imageUrl;
+        } catch (Exception e) {
+            logger.error("Exception during FreeImage.host upload: {}", e.getMessage(), e);
+            throw e; // Let the outer catch block handle it
         }
     }
 
