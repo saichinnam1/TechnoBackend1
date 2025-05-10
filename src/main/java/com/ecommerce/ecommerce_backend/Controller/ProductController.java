@@ -2,6 +2,7 @@ package com.ecommerce.ecommerce_backend.Controller;
 
 import com.ecommerce.ecommerce_backend.entity.Product;
 import com.ecommerce.ecommerce_backend.repository.ProductRepository;
+import okhttp3.*;
 import okhttp3.RequestBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,28 +11,33 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import okhttp3.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
+    private static final String FREEIMAGE_API_KEY = "6d207e02198a847aa98d0a2a901485";
 
     private final ProductRepository productRepository;
     private final OkHttpClient client;
 
     public ProductController(ProductRepository productRepository) {
         this.productRepository = productRepository;
-        this.client = new OkHttpClient();
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build();
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -42,16 +48,35 @@ public class ProductController {
                                                  @RequestParam("price") double price,
                                                  @RequestParam("category") String category) {
         try {
+            // Input validation
             if (file.isEmpty()) return ResponseEntity.badRequest().body("Please select a file to upload.");
+            if (!file.getContentType().startsWith("image/")) {
+                return ResponseEntity.badRequest().body("Only image files are allowed.");
+            }
+            if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit
+                return ResponseEntity.badRequest().body("File size exceeds 10MB limit.");
+            }
             if (name == null || name.trim().isEmpty()) return ResponseEntity.badRequest().body("Product name is required.");
             if (description == null || description.trim().isEmpty()) return ResponseEntity.badRequest().body("Description is required.");
             if (price <= 0) return ResponseEntity.badRequest().body("Price must be greater than 0.");
             if (category == null || category.trim().isEmpty()) return ResponseEntity.badRequest().body("Category is required.");
 
+            logger.info("Uploading file: {} (size: {} bytes)", file.getOriginalFilename(), file.getSize());
+
             // Upload file to FreeImage.host
             String imageUrl = uploadToFreeImageHost(file);
             if (imageUrl == null) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload image to FreeImage.host.");
+                logger.warn("Falling back to saving product without image due to FreeImage.host failure.");
+                // Optionally save the product without an image or implement local storage
+                Product product = new Product();
+                product.setName(name);
+                product.setDescription(description);
+                product.setPrice(price);
+                product.setCategory(category);
+                product.setImageUrl(null); // No image URL
+                Product savedProduct = productRepository.save(product);
+                logger.info("Product saved without image: {}", savedProduct.getName());
+                return ResponseEntity.ok(convertToResponse(savedProduct));
             }
 
             logger.info("File uploaded to FreeImage.host successfully: {}", imageUrl);
@@ -62,7 +87,7 @@ public class ProductController {
             product.setDescription(description);
             product.setPrice(price);
             product.setCategory(category);
-            product.setImageUrl(imageUrl); // Store the direct URL
+            product.setImageUrl(imageUrl);
             Product savedProduct = productRepository.save(product);
 
             logger.info("Product saved: {}", savedProduct.getName());
@@ -75,15 +100,16 @@ public class ProductController {
     }
 
     private String uploadToFreeImageHost(MultipartFile file) throws Exception {
-        // Prepare the multipart form data for FreeImage.host
+
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("source", file.getOriginalFilename(),
                         RequestBody.create(file.getBytes(), MediaType.parse("image/*")))
                 .addFormDataPart("type", "file")
+                .addFormDataPart("key", FREEIMAGE_API_KEY) // Include the API key
                 .build();
 
-        // Make the request to FreeImage.host
+
         Request request = new Request.Builder()
                 .url("https://freeimage.host/api/1/upload")
                 .post(requestBody)
