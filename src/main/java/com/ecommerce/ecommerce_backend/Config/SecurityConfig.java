@@ -111,7 +111,7 @@ public class SecurityConfig {
     private CorsConfigurationSource corsConfigurationSource() {
         logger.debug("Configuring CORS");
         CorsConfiguration configuration = new CorsConfiguration();
-        // Split the allowedOrigins string (from application.properties) into a list
+
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
